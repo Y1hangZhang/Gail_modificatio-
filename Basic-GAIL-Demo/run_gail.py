@@ -67,7 +67,7 @@ def main(args):
                     break
                 else:
                     obs = next_obs
-            # 파라미터 저장
+
             writer.add_summary(tf.compat.v1.Summary(value=[tf.compat.v1.Summary.Value(tag='episode_length', simple_value=run_policy_steps)])
                                , iteration)
             writer.add_summary(tf.compat.v1.Summary(value=[tf.compat.v1.Summary.Value(tag='episode_reward', simple_value=sum(rewards))])
@@ -75,7 +75,7 @@ def main(args):
 
             if sum(rewards) >= 195:  # reward, 성공횟수 기준으로 expert 와 비슷하다고 생각하고 끝낸다
                 success_num += 1
-                if success_num >= 100:
+                if success_num >= 100:  # Policy의 파라미터 저장
                     saver.save(sess, args.savedir + '/model.ckpt')
                     print('Clear!! Model saved.')
                     break
