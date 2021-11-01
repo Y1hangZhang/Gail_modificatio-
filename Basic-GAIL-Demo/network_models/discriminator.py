@@ -30,7 +30,7 @@ class Discriminator:
                 prob_2 = self.construct_network(input=agent_s_a)
 
             with tf.compat.v1.variable_scope('loss'): # 사실 대수적 손실 함수입니다.전문가 행동과 에이전트 행동을 구별하고 싶습니다.
-                loss_expert = tf.reduce_mean(tf.log(tf.clip_by_value(prob_1, 0.01, 1)))
+                loss_expert = tf.reduce_mean(tf.log(tf.clip_by_value(prob_1, 0.01, 1)))   # clip_value(obj, min, max), 평균을 구하는 식
                 loss_agent = tf.reduce_mean(tf.log(tf.clip_by_value(1 - prob_2, 0.01, 1)))
                 loss = loss_expert + loss_agent
                 loss = -loss

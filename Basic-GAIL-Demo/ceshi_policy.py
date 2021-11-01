@@ -18,13 +18,13 @@ def argparser():
 def main(args):
     env = gym.make('CartPole-v0')
     env.seed(0)
-    Policy = Policy_net('policy', env)
+    Policy = Policy_net('policy', env)  
     saver = tf.compat.v1.train.Saver()
 
     with tf.compat.v1.Session() as sess:
-        writer = tf.compat.v1.summary.FileWriter(args.logdir+'/'+args.alg, sess.graph)  # Question 파라미터 불러오기 old_policy 인지 policy인지?  -> Policy
+        writer = tf.compat.v1.summary.FileWriter(args.logdir+'/'+args.alg, sess.graph)  
         sess.run(tf.compat.v1.global_variables_initializer())
-        if args.model == '':
+        if args.model == '':   # Question 파라미터 불러오기 old_policy 인지 policy인지?  -> Policy의 파라미터
             saver.restore(sess, args.modeldir+'/'+args.alg+'/'+'model.ckpt')
         else:
             saver.restore(sess, args.modeldir+'/'+args.alg+'/'+'model.ckpt-'+args.model)

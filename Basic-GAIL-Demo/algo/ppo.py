@@ -44,23 +44,23 @@ class PPOTrain:
         act_probs_old = act_probs_old * tf.one_hot(indices=self.actions, depth=act_probs_old.shape[1])
         act_probs_old = tf.reduce_sum(act_probs_old, axis=1)
 
-        with tf.compat.v1.variable_scope('loss'):
-            # construct computation graph for loss_clip
+        with tf.compat.v1.variable_scope('loss'):  # GD 방법이 아니므로 단순하게 loss function 의 미분값 구하는게 아니다. -> 제약조건 내에 목적함수가 최대화되게 만드는것
+            # construct computation graph for loss_clip (클립된 loss 계산)
             # ratios = tf.divide(act_probs, act_probs_old)
             ratios = tf.exp(tf.math.log(tf.clip_by_value(act_probs, 1e-10, 1.0))
-                            - tf.math.log(tf.clip_by_value(act_probs_old, 1e-10, 1.0)))
-            clipped_ratios = tf.clip_by_value(ratios, clip_value_min=1 - clip_value, clip_value_max=1 + clip_value)
-            loss_clip = tf.minimum(tf.multiply(self.gaes, ratios), tf.multiply(self.gaes, clipped_ratios))
+                            - tf.math.log(tf.clip_by_value(act_probs_old, 1e-10, 1.0)))  # 이전 정책과 새 정책, 둘 사이의 변화량 비율
+            clipped_ratios = tf.clip_by_value(ratios, clip_value_min=1 - clip_value, clip_value_max=1 + clip_value)  # 1이내의 범위로 클립
+            loss_clip = tf.minimum(tf.multiply(self.gaes, ratios), tf.multiply(self.gaes, clipped_ratios))   # 둘 중 더 작은 값을 loss로 사용
             loss_clip = tf.reduce_mean(loss_clip)
             tf.compat.v1.summary.scalar('loss_clip', loss_clip)
 
-            # construct computation graph for loss of entropy bonus
+            # construct computation graph for loss of entropy bonus (엔트로피 계산)
             entropy = -tf.reduce_sum(self.Policy.act_probs *
                                      tf.math.log(tf.clip_by_value(self.Policy.act_probs, 1e-10, 1.0)), axis=1)
             entropy = tf.reduce_mean(entropy, axis=0)  # mean of entropy of pi(obs)
             tf.compat.v1.summary.scalar('entropy', entropy)
 
-            # construct computation graph for loss of value function
+            # construct computation graph for loss of value function (value function의 squared loss 계산)
             v_preds = self.Policy.v_preds
             loss_vf = tf.math.squared_difference(self.rewards + self.gamma * self.v_preds_next, v_preds)
             loss_vf = tf.reduce_mean(loss_vf)
@@ -98,11 +98,11 @@ class PPOTrain:
         # assign policy parameter values to old policy parameters
         return tf.compat.v1.get_default_session().run(self.assign_ops)
 
-    def get_gaes(self, rewards, v_preds, v_preds_next):  # PPO의 loss
+    def get_gaes(self, rewards, v_preds, v_preds_next):  # PPO의 목적함수
         deltas = [r_t + self.gamma * v_next - v for r_t, v_next, v in zip(rewards, v_preds_next, v_preds)]
-        # calculate generative advantage estimator(lambda = 1), see ppo paper eq(11)
+        # calculate generative advantage estimator(lambda = 1) = A_t, see ppo paper eq(11)
         gaes = copy.deepcopy(deltas)
-        for t in reversed(range(len(gaes) - 1)):  # is T-1, where T is time step which run policy
+        for t in reversed(range(len(gaes) - 1)):  # is T-1, where T is time step which run policy  -> T 타임스텝 동안 모은 advantage --> 하나의 미니배치로 이용
             gaes[t] = gaes[t] + self.gamma * gaes[t + 1]
         return gaes
 

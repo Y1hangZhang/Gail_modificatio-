@@ -86,7 +86,7 @@ def main(args):
             observations = np.reshape(observations,newshape=[-1] + list(ob_space.shape))  # 예시> (13,1,4) -> (13,4)
             actions = np.array(actions).astype(dtype = np.int32)
 
-            for i in range(2):     # Question 하이퍼 파라미터, 아니면 expert는 1이 되도록, learner은 0이 되도록 훈련 ?
+            for i in range(2):     # Question 2는 하이퍼 파라미터
                 D.train(expert_s = expert_observations,
                         expert_a = expert_actions,
                         agent_s = observations,
@@ -96,12 +96,12 @@ def main(args):
             d_rewards = D.get_rewards(agent_s=observations,agent_a = actions)   # 얼마나 전문가와 행동이 비슷한지 결과값이 reward
             d_rewards = np.reshape(d_rewards,newshape=[-1]).astype(dtype=np.float32)
 
-            gaes = PPO.get_gaes(rewards=d_rewards, v_preds=v_preds, v_preds_next=v_preds_next)   # policy 와 old policy를 비교하는 cost function
+            gaes = PPO.get_gaes(rewards=d_rewards, v_preds=v_preds, v_preds_next=v_preds_next)   # policy 와 old policy를 비교하는 optimization function
             gaes = np.array(gaes).astype(dtype=np.float32)  # pre processing
-            # gaes = (gaes - gaes.mean()) / gaes.std()   # 원래 이렇게 되어 있었다
+            # gaes = (gaes - gaes.mean()) / gaes.std()
             v_preds_next = np.array(v_preds_next).astype(dtype=np.float32)
 
-            # train policy --> (에이전트의 행동이 전문가와 비슷하게 되도록 policy 업데이트)
+            # train policy --> (에이전트의 행동이 전문가 정책과 비슷하게 되도록 policy 업데이트)
             inp = [observations, actions, gaes, d_rewards, v_preds_next]  # input
             PPO.assign_policy_parameters()  #old_policy 파라미터를 policy 파라미터로 업데이트
             for epoch in range(6):
@@ -112,10 +112,7 @@ def main(args):
                           actions=sampled_inp[1],
                           gaes=sampled_inp[2],
                           rewards=sampled_inp[3],
-                          v_preds_next=sampled_inp[4])
-    # policy가 환경에서 적용되어 데이터를 수집하고, old_policy 와 policy 사이의 차를 다시 구해서  old_policy 업데이트,
-    # policy, old_policy 둘다 업데이트(policy는 자체적으로 expert data와 유사한 결과내게 업데이트),
-    # old_policy 파라미터 가져오기 (old policy에 파라미터를 업데이트할 데이터를 제공, old_policy 업데이트)
+                          v_preds_next=sampled_inp[4])   # PPO 를 이용해 GAIL 최적화
 
             summary = PPO.get_summary(obs=inp[0],
                                       actions=inp[1],
